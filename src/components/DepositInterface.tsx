@@ -2,6 +2,15 @@ import { useState } from "react";
 import { VaultData } from "../lib/types";
 import { validateAmount } from "../lib/utils";
 import { TokenInput } from "./TokenInput";
+import { useAccount, useWriteContract } from "wagmi";
+import { tokenVaultAbi } from "~/lib/tokenVaultAbi";
+import { Address, erc20Abi } from "viem";
+import { config } from "~/wagmi";
+import {
+  readContracts,
+  simulateContract,
+  waitForTransactionReceipt,
+} from "@wagmi/core";
 
 interface DepositInterfaceProps {
   vault: VaultData;
@@ -14,6 +23,8 @@ interface DepositInterfaceProps {
   onSecondaryAmountChange: (amount: string) => void;
   onPrimaryMaxClick: () => void;
   onSecondaryMaxClick: () => void;
+  primaryAmountWithDecimals: number;
+  secondaryAmountWithDecimals: number;
 }
 
 export const DepositInterface = ({
@@ -27,8 +38,11 @@ export const DepositInterface = ({
   onSecondaryAmountChange,
   onPrimaryMaxClick,
   onSecondaryMaxClick,
+  primaryAmountWithDecimals,
+  secondaryAmountWithDecimals,
 }: DepositInterfaceProps) => {
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
+  const { address, chainId } = useAccount();
 
   const isPrimaryValid =
     primaryAmount === "" || validateAmount(primaryAmount, primaryBalance);
@@ -39,6 +53,109 @@ export const DepositInterface = ({
     isPrimaryValid &&
     secondaryAmount !== "" &&
     isSecondaryValid;
+
+  const writeIncreaseAllowance = useWriteContract();
+  const deposit = useWriteContract();
+
+  const handleTopUp = async () => {
+    if (!primaryAmountWithDecimals || !secondaryAmountWithDecimals) {
+      console.error("Invalid amount");
+      return;
+    }
+    if (!address) {
+      console.error("No wallet address found");
+      return;
+    }
+
+    if (!chainId || chainId == null) {
+      console.error("No chain ID found");
+      return;
+    }
+
+    const contract = "0xdc5Fc954B1Ae78A9a134A21bEcC5A2477b2be848";
+    const [allowance0, allowance1] = await readContracts(config, {
+      contracts: [
+        {
+          address: vault.tokens.primary.address as Address,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [address as Address, contract as Address],
+        },
+        {
+          address: vault.tokens.secondary.address as Address,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [address as Address, contract as Address],
+        },
+      ],
+    });
+
+    if (allowance0.error || allowance1.error) {
+      console.error("Failed to get allowance");
+      return;
+    }
+
+    const tokenAllowance0 = Number(allowance0.result);
+    const tokenAllowance1 = Number(allowance1.result);
+
+    const needsApproval0 = tokenAllowance0 < BigInt(primaryAmountWithDecimals);
+    const needsApproval1 =
+      tokenAllowance1 < BigInt(secondaryAmountWithDecimals);
+
+    if (needsApproval0) {
+      const approveTransaction0 =
+        await writeIncreaseAllowance.writeContractAsync({
+          address: vault.tokens.primary.address as Address,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [contract as Address, BigInt(primaryAmountWithDecimals)],
+          chainId,
+        });
+
+      const { status } = await waitForTransactionReceipt(config, {
+        hash: approveTransaction0,
+        chainId: chainId as 1,
+      });
+      if (status === "reverted") {
+        console.error("Failed to approve tokens");
+      }
+    }
+
+    if (needsApproval1) {
+      const approveTransaction1 =
+        await writeIncreaseAllowance.writeContractAsync({
+          address: vault.tokens.secondary.address as Address,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [contract as Address, BigInt(secondaryAmountWithDecimals)],
+          chainId,
+        });
+
+      const { status } = await waitForTransactionReceipt(config, {
+        hash: approveTransaction1,
+        chainId: chainId as 1,
+      });
+      if (status === "reverted") {
+        console.error("Failed to approve tokens");
+      }
+    }
+    const simulateCreateVesting = await simulateContract(config, {
+      address: contract as Address,
+      abi: tokenVaultAbi,
+      functionName: "deposit",
+      args: [
+        vault.tokens.primary.address as Address,
+        BigInt(primaryAmountWithDecimals),
+        vault.tokens.secondary.address as Address,
+        BigInt(secondaryAmountWithDecimals),
+      ],
+      chainId: chainId as 1,
+    });
+    if (simulateCreateVesting.request) {
+      await deposit.writeContractAsync(simulateCreateVesting.request);
+    }
+    console.log("Top-up successful");
+  };
 
   return (
     <div className="mt-6 space-y-4">
@@ -102,6 +219,11 @@ export const DepositInterface = ({
       </div>
 
       <button
+        onClick={() => {
+          if (canDeposit) {
+            handleTopUp();
+          }
+        }}
         disabled={!canDeposit}
         className={`w-full font-semibold py-4 px-6 rounded-2xl transition-all duration-300 shadow-lg ${
           canDeposit

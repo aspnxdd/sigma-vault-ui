@@ -81,6 +81,16 @@ export const VaultDetail = ({ vaultId }: VaultDetailProps) => {
     }
   };
 
+  const primaryAmountWithDecimals =
+    primaryAmount && tokenBalances?.[1]
+      ? Number((Number(primaryAmount) * 10 ** tokenBalances[1]).toFixed(0))
+      : 0;
+
+  const secondaryAmountWithDecimals =
+    secondaryAmount && tokenBalances?.[3]
+      ? Number((Number(secondaryAmount) * 10 ** tokenBalances[3]).toFixed(0))
+      : 0;
+
   if (!vault) {
     return (
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -138,6 +148,8 @@ export const VaultDetail = ({ vaultId }: VaultDetailProps) => {
                 onSecondaryAmountChange={setSecondaryAmount}
                 onPrimaryMaxClick={handlePrimaryMaxClick}
                 onSecondaryMaxClick={handleSecondaryMaxClick}
+                primaryAmountWithDecimals={primaryAmountWithDecimals}
+                secondaryAmountWithDecimals={secondaryAmountWithDecimals}
               />
             </div>
           </div>

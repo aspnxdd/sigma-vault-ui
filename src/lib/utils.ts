@@ -27,16 +27,16 @@ export const getVaultData = (): Record<string, VaultData> => ({
     icon: '💰',
     description: 'A conservative yield strategy that deposits USDC into Compound V3 protocol for stable returns.',      tokens: {
         primary: {
-          name: 'USD Coin',
-          symbol: 'USDC',
+          name: 'WETH',
+          symbol: 'WETH',
           image: '🪙',
-          address: '0xd7a892f28dEdC74E6b7b33F93BE08abfC394a360'
+          address: '0x4200000000000000000000000000000000000006'
         },
         secondary: {
-          name: 'Dai Stablecoin',
-          symbol: 'DAI',
+          name: 'USDC',
+          symbol: 'USDC',
           image: '🟡',
-          address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+          address: '0x078d782b760474a361dda0af3839290b0ef57ad6'
         }
       },
     riskLevel: 'Low',
