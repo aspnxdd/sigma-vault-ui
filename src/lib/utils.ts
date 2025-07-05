@@ -1,9 +1,9 @@
 import { VaultData } from './types';
 
-export const validateAmount = (amount: string, balance: number): boolean => {
+export const validateAmount = (amount: string, balance: number | null): boolean => {
   const numAmount = parseFloat(amount);
   if (isNaN(numAmount) || numAmount < 0) return false;
-  if (numAmount > balance) return false;
+  if (balance === null || numAmount > balance) return false;
   return true;
 };
 
@@ -25,19 +25,20 @@ export const getVaultData = (): Record<string, VaultData> => ({
     totalApr: '8.24%',
     balance: '$1,234.56',
     icon: '💰',
-    description: 'A conservative yield strategy that deposits USDC into Compound V3 protocol for stable returns.',
-    tokens: {
-      primary: {
-        name: 'USD Coin',
-        symbol: 'USDC',
-        image: '🪙'
+    description: 'A conservative yield strategy that deposits USDC into Compound V3 protocol for stable returns.',      tokens: {
+        primary: {
+          name: 'USD Coin',
+          symbol: 'USDC',
+          image: '🪙',
+          address: '0xd7a892f28dEdC74E6b7b33F93BE08abfC394a360'
+        },
+        secondary: {
+          name: 'Dai Stablecoin',
+          symbol: 'DAI',
+          image: '🟡',
+          address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+        }
       },
-      secondary: {
-        name: 'Dai Stablecoin',
-        symbol: 'DAI',
-        image: '🟡'
-      }
-    },
     riskLevel: 'Low',
     protocolInfo: {
       name: 'Compound V3',
@@ -53,19 +54,20 @@ export const getVaultData = (): Record<string, VaultData> => ({
     totalApr: '4.15%',
     balance: '$567.89',
     icon: '⚡',
-    description: 'Liquid staking strategy that stakes ETH through Lido Finance protocol for ETH 2.0 rewards.',
-    tokens: {
-      primary: {
-        name: 'Ethereum',
-        symbol: 'ETH',
-        image: '💎'
+    description: 'Liquid staking strategy that stakes ETH through Lido Finance protocol for ETH 2.0 rewards.',      tokens: {
+        primary: {
+          name: 'Ethereum',
+          symbol: 'ETH',
+          image: '💎',
+          address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+        },
+        secondary: {
+          name: 'Lido Staked ETH',
+          symbol: 'stETH',
+          image: '🔥',
+          address: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84'
+        }
       },
-      secondary: {
-        name: 'Lido Staked ETH',
-        symbol: 'stETH',
-        image: '🔥'
-      }
-    },
     riskLevel: 'Medium',
     protocolInfo: {
       name: 'Lido Finance',
@@ -81,19 +83,20 @@ export const getVaultData = (): Record<string, VaultData> => ({
     totalApr: '3.87%',
     balance: '$890.12',
     icon: '₿',
-    description: 'Bitcoin yield strategy utilizing wrapped Bitcoin in DeFi protocols for conservative growth.',
-    tokens: {
-      primary: {
-        name: 'Wrapped Bitcoin',
-        symbol: 'WBTC',
-        image: '🟠'
+    description: 'Bitcoin yield strategy utilizing wrapped Bitcoin in DeFi protocols for conservative growth.',      tokens: {
+        primary: {
+          name: 'Wrapped Bitcoin',
+          symbol: 'WBTC',
+          image: '🟠',
+          address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
+        },
+        secondary: {
+          name: 'Bitcoin',
+          symbol: 'BTC',
+          image: '⚡',
+          address: '0x0316EB71485b0Ab14103307bf65a021042c6d380'
+        }
       },
-      secondary: {
-        name: 'Bitcoin',
-        symbol: 'BTC',
-        image: '⚡'
-      }
-    },
     riskLevel: 'Low',
     protocolInfo: {
       name: 'Wrapped Bitcoin',
@@ -109,19 +112,20 @@ export const getVaultData = (): Record<string, VaultData> => ({
     totalApr: '12.45%',
     balance: '$2,345.67',
     icon: '🔄',
-    description: 'Liquidity provision strategy in Curve 3Pool for stablecoin yield farming with high APR.',
-    tokens: {
-      primary: {
-        name: 'USD Coin',
-        symbol: 'USDC',
-        image: '🪙'
+    description: 'Liquidity provision strategy in Curve 3Pool for stablecoin yield farming with high APR.',      tokens: {
+        primary: {
+          name: 'USD Coin',
+          symbol: 'USDC',
+          image: '🪙',
+          address: '0xd7a892f28dEdC74E6b7b33F93BE08abfC394a360'
+        },
+        secondary: {
+          name: 'Tether USD',
+          symbol: 'USDT',
+          image: '🟢',
+          address: '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+        }
       },
-      secondary: {
-        name: 'Tether USD',
-        symbol: 'USDT',
-        image: '🟢'
-      }
-    },
     riskLevel: 'Medium',
     protocolInfo: {
       name: 'Curve Finance',
@@ -137,19 +141,20 @@ export const getVaultData = (): Record<string, VaultData> => ({
     totalApr: '15.73%',
     balance: '$456.78',
     icon: '📈',
-    description: 'Diversified DeFi strategy across multiple protocols for maximum yield optimization.',
-    tokens: {
-      primary: {
-        name: 'DeFi Index Token',
-        symbol: 'DFI',
-        image: '🌈'
+    description: 'Diversified DeFi strategy across multiple protocols for maximum yield optimization.',      tokens: {
+        primary: {
+          name: 'DeFi Index Token',
+          symbol: 'DFI',
+          image: '🌈',
+          address: '0x1494CA1F11D487c2bBe4543E90080AeBa4BA3C2b'
+        },
+        secondary: {
+          name: 'Governance Token',
+          symbol: 'GOV',
+          image: '🏛️',
+          address: '0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0'
+        }
       },
-      secondary: {
-        name: 'Governance Token',
-        symbol: 'GOV',
-        image: '🏛️'
-      }
-    },
     riskLevel: 'High',
     protocolInfo: {
       name: 'Multi-Protocol',

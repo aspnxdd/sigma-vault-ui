@@ -12,11 +12,13 @@ export interface VaultData {
       name: string;
       symbol: string;
       image: string;
+      address: string;
     };
     secondary: {
       name: string;
       symbol: string;
       image: string;
+      address: string;
     };
   };
   riskLevel: 'Low' | 'Medium' | 'High';

@@ -7,8 +7,9 @@ interface DepositInterfaceProps {
   vault: VaultData;
   primaryAmount: string;
   secondaryAmount: string;
-  primaryBalance: number;
-  secondaryBalance: number;
+  primaryBalance: number | null;
+  secondaryBalance: number | null;
+  isLoadingBalances?: boolean;
   onPrimaryAmountChange: (amount: string) => void;
   onSecondaryAmountChange: (amount: string) => void;
   onPrimaryMaxClick: () => void;
@@ -21,6 +22,7 @@ export const DepositInterface = ({
   secondaryAmount,
   primaryBalance,
   secondaryBalance,
+  isLoadingBalances = false,
   onPrimaryAmountChange,
   onSecondaryAmountChange,
   onPrimaryMaxClick,
@@ -69,6 +71,7 @@ export const DepositInterface = ({
           balance={primaryBalance}
           isValid={isPrimaryValid}
           isPrimary={true}
+          isLoadingBalance={isLoadingBalances}
           onAmountChange={onPrimaryAmountChange}
           onMaxClick={onPrimaryMaxClick}
         />
@@ -86,6 +89,7 @@ export const DepositInterface = ({
           balance={secondaryBalance}
           isValid={isSecondaryValid}
           isPrimary={false}
+          isLoadingBalance={isLoadingBalances}
           onAmountChange={onSecondaryAmountChange}
           onMaxClick={onSecondaryMaxClick}
         />

@@ -5,9 +5,10 @@ interface TokenInputProps {
     image: string;
   };
   amount: string;
-  balance: number;
+  balance: number | null;
   isValid: boolean;
   isPrimary?: boolean;
+  isLoadingBalance?: boolean;
   onAmountChange: (amount: string) => void;
   onMaxClick: () => void;
 }
@@ -18,6 +19,7 @@ export const TokenInput = ({
   balance, 
   isValid, 
   isPrimary = true,
+  isLoadingBalance = false,
   onAmountChange,
   onMaxClick
 }: TokenInputProps) => {
@@ -44,7 +46,15 @@ export const TokenInput = ({
         </div>
         <div className="text-right">
           <div className="text-xs text-gray-500">Balance</div>
-          <div className="text-sm text-gray-300">{balance.toLocaleString()}</div>
+          <div className="text-sm text-gray-300">
+            {isLoadingBalance ? (
+              <span className="animate-pulse">Loading...</span>
+            ) : balance !== null ? (
+              balance.toLocaleString()
+            ) : (
+              '—'
+            )}
+          </div>
         </div>
       </div>
       <div className="flex items-center space-x-3">
@@ -59,14 +69,21 @@ export const TokenInput = ({
         />
         <button 
           onClick={onMaxClick}
-          className={`text-xs transition-colors font-medium px-2 py-1 rounded ${buttonColor}`}
+          disabled={balance === null || isLoadingBalance}
+          className={`text-xs transition-colors font-medium px-2 py-1 rounded ${
+            balance === null || isLoadingBalance 
+              ? 'text-gray-500 bg-gray-700/50 cursor-not-allowed' 
+              : buttonColor
+          }`}
         >
           MAX
         </button>
       </div>
       {!isValid && (
         <div className="mt-2 text-xs text-red-400">
-          {parseFloat(amount) > balance ? 'Insufficient balance' : 'Invalid amount'}
+          {balance !== null && parseFloat(amount) > balance 
+            ? 'Insufficient balance' 
+            : 'Invalid amount'}
         </div>
       )}
     </div>
