@@ -9,6 +9,7 @@ interface TokenInputProps {
   isValid: boolean;
   isPrimary?: boolean;
   isLoadingBalance?: boolean;
+  readonly?: boolean;
   onAmountChange: (amount: string) => void;
   onMaxClick: () => void;
 }
@@ -20,6 +21,7 @@ export const TokenInput = ({
   isValid, 
   isPrimary = true,
   isLoadingBalance = false,
+  readonly = false,
   onAmountChange,
   onMaxClick
 }: TokenInputProps) => {
@@ -44,18 +46,20 @@ export const TokenInput = ({
           </div>
           <span className="text-sm font-medium text-gray-300">{token.symbol}</span>
         </div>
-        <div className="text-right">
-          <div className="text-xs text-gray-500">Balance</div>
-          <div className="text-sm text-gray-300">
-            {isLoadingBalance ? (
-              <span className="animate-pulse">Loading...</span>
-            ) : balance !== null ? (
-              balance.toLocaleString()
-            ) : (
-              '—'
-            )}
+        {!readonly && (
+          <div className="text-right">
+            <div className="text-xs text-gray-500">Balance</div>
+            <div className="text-sm text-gray-300">
+              {isLoadingBalance ? (
+                <span className="animate-pulse">Loading...</span>
+              ) : balance !== null ? (
+                balance.toLocaleString()
+              ) : (
+                '—'
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div className="flex items-center space-x-3">
         <input
@@ -63,21 +67,26 @@ export const TokenInput = ({
           placeholder="0.0"
           value={amount}
           onChange={(e) => onAmountChange(e.target.value)}
-          className="flex-1 bg-transparent text-white text-xl font-bold outline-none placeholder-gray-500"
+          readOnly={readonly}
+          className={`flex-1 bg-transparent text-white text-xl font-bold outline-none placeholder-gray-500 ${
+            readonly ? 'cursor-default' : ''
+          }`}
           min="0"
           step="0.000001"
         />
-        <button 
-          onClick={onMaxClick}
-          disabled={balance === null || isLoadingBalance}
-          className={`text-xs transition-colors font-medium px-2 py-1 rounded ${
-            balance === null || isLoadingBalance 
-              ? 'text-gray-500 bg-gray-700/50 cursor-not-allowed' 
-              : buttonColor
-          }`}
-        >
-          MAX
-        </button>
+        {!readonly && (
+          <button 
+            onClick={onMaxClick}
+            disabled={balance === null || isLoadingBalance}
+            className={`text-xs transition-colors font-medium px-2 py-1 rounded ${
+              balance === null || isLoadingBalance 
+                ? 'text-gray-500 bg-gray-700/50 cursor-not-allowed' 
+                : buttonColor
+            }`}
+          >
+            MAX
+          </button>
+        )}
       </div>
       {!isValid && (
         <div className="mt-2 text-xs text-red-400">

@@ -35,13 +35,11 @@ export const TokenCard = ({ token, amount = 0, isPrimary = true }: TokenCardProp
 
 interface VaultAssetsProps {
   vault: VaultData;
+  depositedPrimary?: number;
+  depositedSecondary?: number;
 }
 
-export const VaultAssets = ({ vault }: VaultAssetsProps) => {
-  // Mock deposited amounts - in real app this would come from user's actual deposits
-  const depositedPrimary = 0; // User's deposited amount for primary token
-  const depositedSecondary = 0; // User's deposited amount for secondary token
-
+export const VaultAssets = ({ vault, depositedPrimary = 0, depositedSecondary = 0 }: VaultAssetsProps) => {
   return (
     <div className="bg-gradient-to-br from-gray-800/40 to-slate-800/40 rounded-2xl p-6 border border-gray-600/30">
       <h3 className="text-xl font-semibold text-gray-200 mb-4">Deposited Assets</h3>

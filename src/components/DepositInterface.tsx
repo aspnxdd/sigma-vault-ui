@@ -25,6 +25,8 @@ interface DepositInterfaceProps {
   onSecondaryMaxClick: () => void;
   primaryAmountWithDecimals: number;
   secondaryAmountWithDecimals: number;
+  depositedPrimary?: number;
+  depositedSecondary?: number;
 }
 
 export const DepositInterface = ({
@@ -40,6 +42,8 @@ export const DepositInterface = ({
   onSecondaryMaxClick,
   primaryAmountWithDecimals,
   secondaryAmountWithDecimals,
+  depositedPrimary = 0,
+  depositedSecondary = 0,
 }: DepositInterfaceProps) => {
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
   const { address, chainId } = useAccount();
@@ -48,16 +52,23 @@ export const DepositInterface = ({
     primaryAmount === "" || validateAmount(primaryAmount, primaryBalance);
   const isSecondaryValid =
     secondaryAmount === "" || validateAmount(secondaryAmount, secondaryBalance);
+  
   const canDeposit =
+    activeTab === "deposit" &&
     primaryAmount !== "" &&
     isPrimaryValid &&
     secondaryAmount !== "" &&
     isSecondaryValid;
 
+  const canWithdraw =
+    activeTab === "withdraw" &&
+    (depositedPrimary > 0 || depositedSecondary > 0);
+
   const writeIncreaseAllowance = useWriteContract();
   const deposit = useWriteContract();
+  const withdraw = useWriteContract();
 
-  const handleTopUp = async () => {
+  const handleDeposit = async () => {
     if (!primaryAmountWithDecimals || !secondaryAmountWithDecimals) {
       console.error("Invalid amount");
       return;
@@ -154,13 +165,37 @@ export const DepositInterface = ({
     if (simulateCreateVesting.request) {
       await deposit.writeContractAsync(simulateCreateVesting.request);
     }
-    console.log("Top-up successful");
+  };
+
+  const handleWithdraw = async () => {
+    if (!address) {
+      console.error("No wallet address found");
+      return;
+    }
+
+    if (!chainId || chainId == null) {
+      console.error("No chain ID found");
+      return;
+    }
+
+    const contract = "0xdc5Fc954B1Ae78A9a134A21bEcC5A2477b2be848";
+
+    const simulateCreateVesting = await simulateContract(config, {
+      address: contract as Address,
+      abi: tokenVaultAbi,
+      functionName: "withdraw",
+      args: [BigInt(0)],
+      chainId: chainId as 1,
+    });
+    if (simulateCreateVesting.request) {
+      await withdraw.writeContractAsync(simulateCreateVesting.request);
+    }
   };
 
   return (
     <div className="mt-6 space-y-4">
       {/* Tab Navigation */}
-      <div className="flex bg-gray-800/50 rounded-xl p-1">
+      <div className="flex p-1 bg-gray-800/50 rounded-xl">
         <button
           onClick={() => setActiveTab("deposit")}
           className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -184,58 +219,62 @@ export const DepositInterface = ({
       </div>
 
       <div className="space-y-4">
-        <h4 className="text-sm font-medium text-gray-300 mb-3">
+        <h4 className="mb-3 text-sm font-medium text-gray-300">
           {activeTab === "deposit" ? "Deposit Amount" : "Withdraw Amount"}
         </h4>
 
         <TokenInput
           token={vault.tokens.primary}
-          amount={primaryAmount}
-          balance={primaryBalance}
-          isValid={isPrimaryValid}
+          amount={activeTab === "withdraw" ? depositedPrimary.toString() : primaryAmount}
+          balance={activeTab === "withdraw" ? depositedPrimary : primaryBalance}
+          isValid={activeTab === "withdraw" ? true : isPrimaryValid}
           isPrimary={true}
           isLoadingBalance={isLoadingBalances}
-          onAmountChange={onPrimaryAmountChange}
-          onMaxClick={onPrimaryMaxClick}
+          readonly={activeTab === "withdraw"}
+          onAmountChange={activeTab === "withdraw" ? () => {} : onPrimaryAmountChange}
+          onMaxClick={activeTab === "withdraw" ? () => {} : onPrimaryMaxClick}
         />
 
         {/* Plus Icon */}
         <div className="flex justify-center">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-lg">+</span>
+          <div className="flex items-center justify-center w-8 h-8 rounded-full shadow-lg bg-gradient-to-r from-blue-500 to-purple-500">
+            <span className="text-lg font-bold text-white">+</span>
           </div>
         </div>
 
         <TokenInput
           token={vault.tokens.secondary}
-          amount={secondaryAmount}
-          balance={secondaryBalance}
-          isValid={isSecondaryValid}
+          amount={activeTab === "withdraw" ? depositedSecondary.toString() : secondaryAmount}
+          balance={activeTab === "withdraw" ? depositedSecondary : secondaryBalance}
+          isValid={activeTab === "withdraw" ? true : isSecondaryValid}
           isPrimary={false}
           isLoadingBalance={isLoadingBalances}
-          onAmountChange={onSecondaryAmountChange}
-          onMaxClick={onSecondaryMaxClick}
+          readonly={activeTab === "withdraw"}
+          onAmountChange={activeTab === "withdraw" ? () => {} : onSecondaryAmountChange}
+          onMaxClick={activeTab === "withdraw" ? () => {} : onSecondaryMaxClick}
         />
       </div>
 
       <button
         onClick={() => {
-          if (canDeposit) {
-            handleTopUp();
+          if (canDeposit && activeTab === "deposit") {
+            handleDeposit();
+          }
+          if (canWithdraw && activeTab === "withdraw") {
+            handleWithdraw();
           }
         }}
-        disabled={!canDeposit}
+        disabled={activeTab === "deposit" ? !canDeposit : !canWithdraw}
         className={`w-full font-semibold py-4 px-6 rounded-2xl transition-all duration-300 shadow-lg ${
-          canDeposit
+          (activeTab === "deposit" ? canDeposit : canWithdraw)
             ? "bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 hover:from-blue-500 hover:via-purple-500 hover:to-blue-500 text-white hover:scale-105 shadow-blue-500/25"
             : "bg-gray-700/50 text-gray-500 cursor-not-allowed"
         }`}
       >
-        {canDeposit
-          ? activeTab === "deposit"
-            ? "Deposit"
-            : "Withdraw"
-          : `Enter amounts to ${activeTab}`}
+        {activeTab === "deposit" 
+          ? (canDeposit ? "Deposit" : "Enter amounts to deposit")
+          : (canWithdraw ? "Withdraw All" : "No deposited assets to withdraw")
+        }
       </button>
     </div>
   );
