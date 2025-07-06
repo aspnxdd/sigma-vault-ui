@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { VaultData } from "../lib/types";
 import { validateAmount } from "../lib/utils";
 import { TokenInput } from "./TokenInput";
 import { useAccount, useWriteContract } from "wagmi";
@@ -11,9 +10,11 @@ import {
   simulateContract,
   waitForTransactionReceipt,
 } from "@wagmi/core";
+import { inferRouterOutputs } from "@trpc/server";
+import { AppRouter } from "~/server/api/root";
 
 interface DepositInterfaceProps {
-  vault: VaultData;
+  vault: inferRouterOutputs<AppRouter>["euler"]["getPoolById"];
   primaryAmount: string;
   secondaryAmount: string;
   primaryBalance: number | null;
@@ -27,6 +28,7 @@ interface DepositInterfaceProps {
   secondaryAmountWithDecimals: number;
   depositedPrimary?: number;
   depositedSecondary?: number;
+  currentDepositId: number;
 }
 
 export const DepositInterface = ({
@@ -44,6 +46,7 @@ export const DepositInterface = ({
   secondaryAmountWithDecimals,
   depositedPrimary = 0,
   depositedSecondary = 0,
+  currentDepositId,
 }: DepositInterfaceProps) => {
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
   const { address, chainId } = useAccount();
@@ -52,7 +55,7 @@ export const DepositInterface = ({
     primaryAmount === "" || validateAmount(primaryAmount, primaryBalance);
   const isSecondaryValid =
     secondaryAmount === "" || validateAmount(secondaryAmount, secondaryBalance);
-  
+
   const canDeposit =
     activeTab === "deposit" &&
     primaryAmount !== "" &&
@@ -87,13 +90,13 @@ export const DepositInterface = ({
     const [allowance0, allowance1] = await readContracts(config, {
       contracts: [
         {
-          address: vault.tokens.primary.address as Address,
+          address: vault.token0.id as Address,
           abi: erc20Abi,
           functionName: "allowance",
           args: [address as Address, contract as Address],
         },
         {
-          address: vault.tokens.secondary.address as Address,
+          address: vault.token1.id as Address,
           abi: erc20Abi,
           functionName: "allowance",
           args: [address as Address, contract as Address],
@@ -116,7 +119,7 @@ export const DepositInterface = ({
     if (needsApproval0) {
       const approveTransaction0 =
         await writeIncreaseAllowance.writeContractAsync({
-          address: vault.tokens.primary.address as Address,
+          address: vault.token0.id as Address,
           abi: erc20Abi,
           functionName: "approve",
           args: [contract as Address, BigInt(primaryAmountWithDecimals)],
@@ -135,7 +138,7 @@ export const DepositInterface = ({
     if (needsApproval1) {
       const approveTransaction1 =
         await writeIncreaseAllowance.writeContractAsync({
-          address: vault.tokens.secondary.address as Address,
+          address: vault.token1.id as Address,
           abi: erc20Abi,
           functionName: "approve",
           args: [contract as Address, BigInt(secondaryAmountWithDecimals)],
@@ -155,9 +158,9 @@ export const DepositInterface = ({
       abi: tokenVaultAbi,
       functionName: "deposit",
       args: [
-        vault.tokens.primary.address as Address,
+        vault.token0.id as Address,
         BigInt(primaryAmountWithDecimals),
-        vault.tokens.secondary.address as Address,
+        vault.token1.id as Address,
         BigInt(secondaryAmountWithDecimals),
       ],
       chainId: chainId as 1,
@@ -184,7 +187,7 @@ export const DepositInterface = ({
       address: contract as Address,
       abi: tokenVaultAbi,
       functionName: "withdraw",
-      args: [BigInt(0)],
+      args: [BigInt(currentDepositId)],
       chainId: chainId as 1,
     });
     if (simulateCreateVesting.request) {
@@ -224,14 +227,24 @@ export const DepositInterface = ({
         </h4>
 
         <TokenInput
-          token={vault.tokens.primary}
-          amount={activeTab === "withdraw" ? depositedPrimary.toString() : primaryAmount}
+          token={{
+            image: "🟡",
+            name: vault.token0.symbol,
+            symbol: vault.token0.symbol,
+          }}
+          amount={
+            activeTab === "withdraw"
+              ? depositedPrimary.toString()
+              : primaryAmount
+          }
           balance={activeTab === "withdraw" ? depositedPrimary : primaryBalance}
           isValid={activeTab === "withdraw" ? true : isPrimaryValid}
           isPrimary={true}
           isLoadingBalance={isLoadingBalances}
           readonly={activeTab === "withdraw"}
-          onAmountChange={activeTab === "withdraw" ? () => {} : onPrimaryAmountChange}
+          onAmountChange={
+            activeTab === "withdraw" ? () => {} : onPrimaryAmountChange
+          }
           onMaxClick={activeTab === "withdraw" ? () => {} : onPrimaryMaxClick}
         />
 
@@ -243,14 +256,26 @@ export const DepositInterface = ({
         </div>
 
         <TokenInput
-          token={vault.tokens.secondary}
-          amount={activeTab === "withdraw" ? depositedSecondary.toString() : secondaryAmount}
-          balance={activeTab === "withdraw" ? depositedSecondary : secondaryBalance}
+          token={{
+            image: "🔵",
+            name: vault.token1.symbol,
+            symbol: vault.token1.symbol,
+          }}
+          amount={
+            activeTab === "withdraw"
+              ? depositedSecondary.toString()
+              : secondaryAmount
+          }
+          balance={
+            activeTab === "withdraw" ? depositedSecondary : secondaryBalance
+          }
           isValid={activeTab === "withdraw" ? true : isSecondaryValid}
           isPrimary={false}
           isLoadingBalance={isLoadingBalances}
           readonly={activeTab === "withdraw"}
-          onAmountChange={activeTab === "withdraw" ? () => {} : onSecondaryAmountChange}
+          onAmountChange={
+            activeTab === "withdraw" ? () => {} : onSecondaryAmountChange
+          }
           onMaxClick={activeTab === "withdraw" ? () => {} : onSecondaryMaxClick}
         />
       </div>
@@ -271,10 +296,13 @@ export const DepositInterface = ({
             : "bg-gray-700/50 text-gray-500 cursor-not-allowed"
         }`}
       >
-        {activeTab === "deposit" 
-          ? (canDeposit ? "Deposit" : "Enter amounts to deposit")
-          : (canWithdraw ? "Withdraw All" : "No deposited assets to withdraw")
-        }
+        {activeTab === "deposit"
+          ? canDeposit
+            ? "Deposit"
+            : "Enter amounts to deposit"
+          : canWithdraw
+          ? "Withdraw All"
+          : "No deposited assets to withdraw"}
       </button>
     </div>
   );

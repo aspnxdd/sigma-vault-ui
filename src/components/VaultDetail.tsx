@@ -4,24 +4,25 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAccount, useReadContracts } from "wagmi";
 import { Address, erc20Abi } from "viem";
-import { VaultDetailProps } from "../lib/types";
-import { getVaultData } from "../lib/utils";
 import { VaultHeader } from "./VaultHeader";
 import { VaultMetrics } from "./VaultMetrics";
 import { VaultAssets } from "./VaultAssets";
 import { DepositInterface } from "./DepositInterface";
 import { VaultPerformanceChart } from "./VaultDetailsSection";
-import { tokenVaultAbi } from "~/lib/tokenVaultAbi";
+import { inferRouterOutputs } from "@trpc/server";
+import { AppRouter } from "~/server/api/root";
 
-export const VaultDetail = ({ vaultId }: VaultDetailProps) => {
+export const VaultDetail = ({
+  vault,
+  depositedAssets,
+}: {
+  vault: inferRouterOutputs<AppRouter>["euler"]["getPoolById"];
+  depositedAssets: inferRouterOutputs<AppRouter>["euler"]["getPoolDepositedAssets"];
+}) => {
   const [primaryAmount, setPrimaryAmount] = useState("");
   const [secondaryAmount, setSecondaryAmount] = useState("");
 
-  const vaultData = getVaultData();
-  const vault = vaultData[vaultId];
-
   const { address, chainId } = useAccount();
-  const contract = "0xdc5Fc954B1Ae78A9a134A21bEcC5A2477b2be848";
 
   const { data: tokenBalances, isLoading: isLoadingBalances } =
     useReadContracts({
@@ -32,37 +33,29 @@ export const VaultDetail = ({ vaultId }: VaultDetailProps) => {
       contracts: vault
         ? [
             {
-              address: vault.tokens.primary.address as Address,
+              address: vault.token0.id as Address,
               abi: erc20Abi,
               functionName: "balanceOf",
               args: [address!],
               chainId,
             },
             {
-              address: vault.tokens.primary.address as Address,
+              address: vault.token0.id as Address,
               abi: erc20Abi,
               functionName: "decimals",
               chainId,
             },
             {
-              address: vault.tokens.secondary.address as Address,
+              address: vault.token1.id as Address,
               abi: erc20Abi,
               functionName: "balanceOf",
               args: [address!],
               chainId,
             },
             {
-              address: vault.tokens.secondary.address as Address,
+              address: vault.token1.id as Address,
               abi: erc20Abi,
               functionName: "decimals",
-              chainId,
-            },
-
-            {
-              address: contract as Address,
-              abi: tokenVaultAbi,
-              functionName: "getDeposit",
-              args: [BigInt(0)],
               chainId,
             },
           ]
@@ -91,26 +84,38 @@ export const VaultDetail = ({ vaultId }: VaultDetailProps) => {
     }
   };
 
+  const depositedAssetsByUser = address
+    ? depositedAssets.find((asset) =>
+        asset.userId.toLowerCase().includes(address.toLowerCase())
+      )
+    : null;
+
   // Parse deposited/withdrawable amounts from getDeposit call
   const depositedPrimary =
-    tokenBalances && tokenBalances[4] && tokenBalances[1]
-      ? Number(tokenBalances[4][3]) / Math.pow(10, Number(tokenBalances[1]))
+    tokenBalances && tokenBalances[1]
+      ? Number(depositedAssetsByUser?.amount0) /
+        Math.pow(10, Number(tokenBalances[1]))
       : 0; // User's withdrawable amount for primary token
   const depositedSecondary =
-    tokenBalances && tokenBalances[4] && tokenBalances[3]
-      ? Number(tokenBalances[4][4]) / Math.pow(10, Number(tokenBalances[3]))
+    tokenBalances && tokenBalances[3]
+      ? Number(depositedAssetsByUser?.amount1) /
+        Math.pow(10, Number(tokenBalances[3]))
       : 0; // User's withdrawable amount for secondary token
 
   // Calculate amounts with decimals for contract calls
-  const primaryDecimals = tokenBalances && tokenBalances[1] ? Number(tokenBalances[1]) : 18;
-  const secondaryDecimals = tokenBalances && tokenBalances[3] ? Number(tokenBalances[3]) : 18;
-  
-  const primaryAmountWithDecimals = primaryAmount
-    ? parseFloat(primaryAmount) * Math.pow(10, primaryDecimals)
-    : 0;
-  const secondaryAmountWithDecimals = secondaryAmount
-    ? parseFloat(secondaryAmount) * Math.pow(10, secondaryDecimals)
-    : 0;
+  const primaryDecimals =
+    tokenBalances && tokenBalances[1] ? Number(tokenBalances[1]) : null;
+  const secondaryDecimals =
+    tokenBalances && tokenBalances[3] ? Number(tokenBalances[3]) : null;
+
+  const primaryAmountWithDecimals =
+    primaryAmount && primaryDecimals
+      ? parseFloat(primaryAmount) * Math.pow(10, primaryDecimals)
+      : 0;
+  const secondaryAmountWithDecimals =
+    secondaryAmount && secondaryDecimals
+      ? parseFloat(secondaryAmount) * Math.pow(10, secondaryDecimals)
+      : 0;
 
   if (!vault) {
     return (
@@ -149,7 +154,8 @@ export const VaultDetail = ({ vaultId }: VaultDetailProps) => {
             <div className="flex flex-col lg:col-span-2">
               <VaultHeader vault={vault} />
               <p className="mb-6 text-lg leading-relaxed text-gray-400">
-                {vault.description}
+                A conservative yield strategy that deposits liquidity into Euler
+                protocol for stable returns.
               </p>
               <VaultMetrics vault={vault} />
               <div className="flex-1 mt-8">
@@ -158,8 +164,8 @@ export const VaultDetail = ({ vaultId }: VaultDetailProps) => {
             </div>
             <div className="lg:col-span-1">
               {(depositedPrimary > 0 || depositedSecondary > 0) && (
-                <VaultAssets 
-                  vault={vault} 
+                <VaultAssets
+                  vault={vault}
                   depositedPrimary={depositedPrimary}
                   depositedSecondary={depositedSecondary}
                 />
@@ -179,6 +185,7 @@ export const VaultDetail = ({ vaultId }: VaultDetailProps) => {
                 secondaryAmountWithDecimals={secondaryAmountWithDecimals}
                 depositedPrimary={depositedPrimary}
                 depositedSecondary={depositedSecondary}
+                currentDepositId={depositedAssetsByUser?.depositId || 0}
               />
             </div>
           </div>

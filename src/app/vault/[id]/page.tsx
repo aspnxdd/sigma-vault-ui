@@ -1,11 +1,11 @@
 import "server-only";
 import { VaultDetail } from "../../../components/VaultDetail";
-import { getVaultById } from "../../../lib/vaultData";
 import { notFound } from "next/navigation";
 import { z } from "zod";
+import { api } from "~/trpc/server";
 
 const VaultParamsSchema = z.object({
-  id: z.string().min(1, "Vault ID is required").max(50, "Vault ID is too long"),
+  id: z.string(),
 });
 
 type Props = {
@@ -22,7 +22,11 @@ export default async function VaultPage({ params: promiseParams }: Props) {
   }
 
   const { id } = validationResult.data;
-  const vault = getVaultById(id);
+  const vault = await api.euler.getPoolById({ id });
+  const depositedAssets = await api.euler.getPoolDepositedAssets({
+    token0Id: vault.token0.id,
+    token1Id: vault.token1.id,
+  });
 
   if (!vault) {
     notFound();
@@ -31,7 +35,7 @@ export default async function VaultPage({ params: promiseParams }: Props) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-slate-950 to-zinc-950">
       <main className="min-h-[calc(100vh-5rem)] py-8">
-        <VaultDetail vaultId={id} />
+        <VaultDetail vault={vault} depositedAssets={depositedAssets} />
       </main>
     </div>
   );
