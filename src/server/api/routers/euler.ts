@@ -173,14 +173,8 @@ export const eulerRouter = createTRPCRouter({
         })
       );
 
-      const sortedToken0 =
-        input.token0Id.toLowerCase() < input.token1Id.toLowerCase()
-          ? input.token0Id
-          : input.token1Id;
-      const sortedToken1 =
-        input.token0Id.toLowerCase() < input.token1Id.toLowerCase()
-          ? input.token1Id
-          : input.token0Id;
+      const sortedToken0 = input.token0Id.toLowerCase();
+      const sortedToken1 = input.token1Id.toLowerCase();
 
       const { sigmaVaultBalances }: { sigmaVaultBalances: unknown } =
         await ctx.graphql.request(
